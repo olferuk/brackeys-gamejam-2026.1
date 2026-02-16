@@ -1,0 +1,23 @@
+[gd_scene load_steps=2 format=3 uid="uid://c5fifteen001"]
+
+[ext_resource type="Script" path="res://src/minigames/fifteen_puzzle.gd" id="1_puzzle"]
+
+[node name="FifteenPuzzle" type="Node2D"]
+script = ExtResource("1_puzzle")
+
+[node name="Background" type="ColorRect" parent="."]
+offset_right = 400.0
+offset_bottom = 400.0
+color = Color(0.1, 0.1, 0.1, 1)
+
+[node name="TilesContainer" type="Node2D" parent="."]
+
+[node name="WinLabel" type="Label" parent="."]
+offset_left = 100.0
+offset_top = 420.0
+offset_right = 300.0
+offset_bottom = 460.0
+theme_override_colors/font_color = Color(0.2, 0.9, 0.3, 1)
+theme_override_font_sizes/font_size = 32
+text = "You Won!"
+horizontal_alignment = 1
