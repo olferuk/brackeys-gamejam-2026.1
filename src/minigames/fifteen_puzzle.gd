@@ -353,7 +353,6 @@ func _add_horizontal_tear(row: int, col: int) -> void:
 	tear.texture = tear_texture
 	tear.centered = true
 	
-	var tex_w = float(tear_texture.get_width())   # thickness (small)
 	var tex_h = float(tear_texture.get_height())  # length (large)
 	
 	# Scale: length should match tile width
@@ -374,7 +373,6 @@ func _add_vertical_tear(row: int, col: int) -> void:
 	tear.texture = tear_texture
 	tear.centered = true
 	
-	var tex_w = float(tear_texture.get_width())   # thickness (small)
 	var tex_h = float(tear_texture.get_height())  # length (large)
 	
 	# Scale: length should match tile height
