@@ -348,44 +348,49 @@ func _are_horizontally_connected(row: int, col: int) -> bool:
 	return orig_row_left == orig_row_right and orig_col_left + 1 == orig_col_right
 
 func _add_horizontal_tear(row: int, col: int) -> void:
+	# Texture on disk is VERTICAL, need to rotate 90° for horizontal seam
 	var tear = TextureRect.new()
 	tear.texture = tear_texture
 	tear.stretch_mode = TextureRect.STRETCH_SCALE
 	
-	# Scale to tile width, maintain aspect ratio
-	var tex_w = tear_texture.get_width()
-	var tex_h = tear_texture.get_height()
-	var scale_factor = tile_size.x / tex_w
-	tear.size = Vector2(tile_size.x, tex_h * scale_factor)
+	var tex_w = tear_texture.get_width()  # thickness (small)
+	var tex_h = tear_texture.get_height()  # length (large)
 	
-	# Center on the seam between row and row+1
-	tear.position = Vector2(col * tile_size.x, (row + 1) * tile_size.y - tear.size.y / 2)
+	# Scale so rotated length = tile width
+	var scale_factor = tile_size.x / tex_h
+	var tear_length = tile_size.x
+	var tear_thickness = tex_w * scale_factor
+	
+	tear.size = Vector2(tear_length, tear_thickness)
+	tear.pivot_offset = tear.size / 2
+	tear.rotation = PI / 2
+	
+	# Center on seam between row and row+1
+	var seam_y = (row + 1) * tile_size.y
+	var seam_center_x = col * tile_size.x + tile_size.x / 2
+	tear.position = Vector2(seam_center_x - tear_thickness / 2, seam_y - tear_length / 2)
+	
 	tears_container.add_child(tear)
 
 func _add_vertical_tear(row: int, col: int) -> void:
+	# Texture on disk is VERTICAL, use as-is for vertical seam
 	var tear = TextureRect.new()
 	tear.texture = tear_texture
 	tear.stretch_mode = TextureRect.STRETCH_SCALE
 	
-	# Scale to tile height, maintain aspect ratio
-	var tex_w = tear_texture.get_width()
-	var tex_h = tear_texture.get_height()
-	var scale_factor = tile_size.y / tex_w
-	var tear_width = tile_size.y  # After rotation this becomes visual height
-	var tear_height = tex_h * scale_factor  # After rotation this becomes visual width (thickness)
+	var tex_w = tear_texture.get_width()  # thickness (small)
+	var tex_h = tear_texture.get_height()  # length (large)
 	
-	tear.size = Vector2(tear_width, tear_height)
+	# Scale so length = tile height
+	var scale_factor = tile_size.y / tex_h
+	var tear_thickness = tex_w * scale_factor
+	var tear_length = tile_size.y
 	
-	# Set pivot to center for easier rotation handling
-	tear.pivot_offset = tear.size / 2
+	tear.size = Vector2(tear_thickness, tear_length)
 	
-	# Rotate 90 degrees
-	tear.rotation = PI / 2
-	
-	# Position at seam center between col and col+1
+	# Center on seam between col and col+1
 	var seam_x = (col + 1) * tile_size.x
-	var seam_center_y = row * tile_size.y + tile_size.y / 2
-	tear.position = Vector2(seam_x - tear_height / 2, seam_center_y - tear_width / 2)
+	tear.position = Vector2(seam_x - tear_thickness / 2, row * tile_size.y)
 	
 	tears_container.add_child(tear)
 
