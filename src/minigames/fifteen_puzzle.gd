@@ -8,14 +8,21 @@ signal puzzle_completed
 @export var puzzle_size: Vector2 = Vector2(400, 400)
 @export var image_texture: Texture2D
 @export_range(5, 200, 5) var shuffle_moves: int = 50
+@export var tear_texture: Texture2D  ## Texture for torn edges between tiles
+@export var developer_mode: bool = false  ## Enables right-click swap cheats
 
 @onready var tiles_container: Node2D = $TilesContainer
+@onready var tears_container: Node2D = $TearsContainer
 @onready var win_label: Label = $WinLabel
 
 var tiles: Array = []  # 2D array of tile nodes
 var empty_pos: Vector2i = Vector2i(0, 0)  # Position of empty slot
 var tile_size: Vector2 = Vector2.ZERO
 var is_solved: bool = false
+
+# Developer mode swap
+var dev_selected_tile: TextureButton = null
+var dev_selected_pos: Vector2i = Vector2i(-1, -1)
 
 func _ready() -> void:
 	win_label.visible = false
@@ -24,6 +31,7 @@ func _ready() -> void:
 
 func setup_puzzle() -> void:
 	_clear_tiles()
+	_clear_tears()
 	
 	tile_size = Vector2(puzzle_size.x / cols, puzzle_size.y / rows)
 	
@@ -51,6 +59,9 @@ func setup_puzzle() -> void:
 	
 	# Shuffle
 	_shuffle_puzzle()
+	
+	# Update tear overlays
+	_update_tears()
 
 func _create_tile(original_row: int, original_col: int, index: int) -> TextureButton:
 	var tile = TextureButton.new()
@@ -80,6 +91,7 @@ func _create_tile(original_row: int, original_col: int, index: int) -> TextureBu
 	tile.position = Vector2(original_col * tile_size.x, original_row * tile_size.y)
 	
 	tile.pressed.connect(_on_tile_pressed.bind(tile))
+	tile.gui_input.connect(_on_tile_gui_input.bind(tile))
 	
 	return tile
 
@@ -95,7 +107,15 @@ func _on_tile_pressed(tile: TextureButton) -> void:
 	# Check if adjacent to empty
 	if _is_adjacent_to_empty(tile_pos):
 		_swap_with_empty(tile_pos)
+		_update_tears()
 		_check_win()
+
+func _on_tile_gui_input(event: InputEvent, tile: TextureButton) -> void:
+	if not developer_mode or is_solved:
+		return
+	
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		_dev_handle_right_click(tile)
 
 func _find_tile_position(tile: TextureButton) -> Vector2i:
 	for row in range(rows):
@@ -182,6 +202,155 @@ func _clear_tiles() -> void:
 	for child in tiles_container.get_children():
 		child.queue_free()
 	tiles = []
+
+func _clear_tears() -> void:
+	if tears_container:
+		for child in tears_container.get_children():
+			child.queue_free()
+
+## Developer Mode
+
+func _dev_handle_right_click(tile: TextureButton) -> void:
+	var tile_pos = _find_tile_position(tile)
+	
+	if dev_selected_tile == null:
+		# First selection
+		dev_selected_tile = tile
+		dev_selected_pos = tile_pos
+		tile.modulate = Color(1, 1, 0.5)  # Highlight yellow
+	else:
+		# Second selection - swap
+		if tile == dev_selected_tile:
+			# Deselect
+			dev_selected_tile.modulate = Color.WHITE
+			dev_selected_tile = null
+			dev_selected_pos = Vector2i(-1, -1)
+		else:
+			# Swap the two tiles
+			_dev_swap_tiles(dev_selected_pos, tile_pos)
+			dev_selected_tile.modulate = Color.WHITE
+			dev_selected_tile = null
+			dev_selected_pos = Vector2i(-1, -1)
+			_update_tears()
+			_check_win()
+
+func _dev_select_empty() -> void:
+	# Called when right-clicking on empty space (handled in _input)
+	if not developer_mode or is_solved:
+		return
+	
+	if dev_selected_tile != null:
+		# Swap selected tile with empty
+		_dev_swap_tiles(dev_selected_pos, empty_pos)
+		dev_selected_tile.modulate = Color.WHITE
+		dev_selected_tile = null
+		dev_selected_pos = Vector2i(-1, -1)
+		_update_tears()
+		_check_win()
+
+func _dev_swap_tiles(pos1: Vector2i, pos2: Vector2i) -> void:
+	var tile1 = tiles[pos1.y][pos1.x]
+	var tile2 = tiles[pos2.y][pos2.x]
+	
+	# Swap in array
+	tiles[pos1.y][pos1.x] = tile2
+	tiles[pos2.y][pos2.x] = tile1
+	
+	# Update positions visually
+	if tile1:
+		tile1.position = Vector2(pos2.x * tile_size.x, pos2.y * tile_size.y)
+	if tile2:
+		tile2.position = Vector2(pos1.x * tile_size.x, pos1.y * tile_size.y)
+	
+	# Update empty_pos if involved
+	if tile1 == null:
+		empty_pos = pos2
+	elif tile2 == null:
+		empty_pos = pos1
+
+func _input(event: InputEvent) -> void:
+	if not developer_mode or is_solved:
+		return
+	
+	# Handle right-click on empty space
+	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		var local_pos = tiles_container.get_local_mouse_position()
+		var grid_pos = Vector2i(int(local_pos.x / tile_size.x), int(local_pos.y / tile_size.y))
+		
+		# Check if clicking on empty space
+		if grid_pos == empty_pos and grid_pos.x >= 0 and grid_pos.x < cols and grid_pos.y >= 0 and grid_pos.y < rows:
+			_dev_select_empty()
+
+## Tear Overlays
+
+func _update_tears() -> void:
+	_clear_tears()
+	
+	if tear_texture == null or tears_container == null:
+		return
+	
+	# Check horizontal tears (between vertically adjacent tiles)
+	for row in range(rows - 1):
+		for col in range(cols):
+			if not _are_vertically_connected(row, col):
+				_add_horizontal_tear(row, col)
+	
+	# Check vertical tears (between horizontally adjacent tiles)
+	for row in range(rows):
+		for col in range(cols - 1):
+			if not _are_horizontally_connected(row, col):
+				_add_vertical_tear(row, col)
+
+func _are_vertically_connected(row: int, col: int) -> bool:
+	# Check if tile at (row, col) connects properly with tile at (row+1, col)
+	var tile_above = tiles[row][col]
+	var tile_below = tiles[row + 1][col]
+	
+	if tile_above == null or tile_below == null:
+		return true  # Empty space doesn't show tear
+	
+	var orig_row_above = tile_above.get_meta("original_row")
+	var orig_col_above = tile_above.get_meta("original_col")
+	var orig_row_below = tile_below.get_meta("original_row")
+	var orig_col_below = tile_below.get_meta("original_col")
+	
+	# They connect if they were originally adjacent vertically
+	return orig_col_above == orig_col_below and orig_row_above + 1 == orig_row_below
+
+func _are_horizontally_connected(row: int, col: int) -> bool:
+	# Check if tile at (row, col) connects properly with tile at (row, col+1)
+	var tile_left = tiles[row][col]
+	var tile_right = tiles[row][col + 1]
+	
+	if tile_left == null or tile_right == null:
+		return true  # Empty space doesn't show tear
+	
+	var orig_row_left = tile_left.get_meta("original_row")
+	var orig_col_left = tile_left.get_meta("original_col")
+	var orig_row_right = tile_right.get_meta("original_row")
+	var orig_col_right = tile_right.get_meta("original_col")
+	
+	# They connect if they were originally adjacent horizontally
+	return orig_row_left == orig_row_right and orig_col_left + 1 == orig_col_right
+
+func _add_horizontal_tear(row: int, col: int) -> void:
+	var tear = TextureRect.new()
+	tear.texture = tear_texture
+	tear.stretch_mode = TextureRect.STRETCH_SCALE
+	tear.size = Vector2(tile_size.x, tear_texture.get_height() * (tile_size.x / tear_texture.get_width()))
+	tear.position = Vector2(col * tile_size.x, (row + 1) * tile_size.y - tear.size.y / 2)
+	tears_container.add_child(tear)
+
+func _add_vertical_tear(row: int, col: int) -> void:
+	var tear = TextureRect.new()
+	tear.texture = tear_texture
+	tear.stretch_mode = TextureRect.STRETCH_SCALE
+	# Rotate 90 degrees for vertical tear
+	tear.size = Vector2(tear_texture.get_height() * (tile_size.y / tear_texture.get_width()), tile_size.y)
+	tear.position = Vector2((col + 1) * tile_size.x - tear.size.x / 2, row * tile_size.y)
+	tear.rotation = PI / 2
+	tear.pivot_offset = Vector2(0, 0)
+	tears_container.add_child(tear)
 
 ## Public API
 

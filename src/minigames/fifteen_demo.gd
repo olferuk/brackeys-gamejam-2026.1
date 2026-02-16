@@ -6,6 +6,7 @@ class_name FifteenDemo
 @onready var cols_spin: SpinBox = $UI/GridSettings/ColsSpin
 @onready var difficulty_slider: HSlider = $UI/DifficultySettings/DifficultySlider
 @onready var difficulty_label: Label = $UI/DifficultySettings/DifficultyValue
+@onready var dev_mode_check: CheckBox = $UI/DevModeCheck
 @onready var file_dialog: FileDialog = $FileDialog
 
 var default_texture: Texture2D
@@ -15,11 +16,13 @@ func _ready() -> void:
 	cols_spin.value = puzzle.cols
 	difficulty_slider.value = puzzle.shuffle_moves
 	_update_difficulty_label(puzzle.shuffle_moves)
+	dev_mode_check.button_pressed = puzzle.developer_mode
 	
 	# Connect signals
 	rows_spin.value_changed.connect(_on_grid_changed)
 	cols_spin.value_changed.connect(_on_grid_changed)
 	difficulty_slider.value_changed.connect(_on_difficulty_changed)
+	dev_mode_check.toggled.connect(_on_dev_mode_toggled)
 	puzzle.puzzle_completed.connect(_on_puzzle_completed)
 	
 	# Load default image if exists
@@ -41,6 +44,9 @@ func _on_difficulty_changed(value: float) -> void:
 
 func _update_difficulty_label(moves: int) -> void:
 	difficulty_label.text = "%d moves" % moves
+
+func _on_dev_mode_toggled(enabled: bool) -> void:
+	puzzle.developer_mode = enabled
 
 func _on_load_button_pressed() -> void:
 	file_dialog.popup_centered()
