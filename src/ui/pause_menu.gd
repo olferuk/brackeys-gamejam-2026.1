@@ -1,7 +1,7 @@
 extends CanvasLayer
 ## Pause menu - показывается по Escape
 
-@onready var panel: Panel = $Panel
+@onready var panel: PanelContainer = $Panel
 
 var is_paused: bool = false
 
