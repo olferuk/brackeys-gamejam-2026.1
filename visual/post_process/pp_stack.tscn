@@ -1,9 +1,9 @@
 [gd_scene format=3 uid="uid://cs8d3xn2towo"]
 
-[ext_resource type="Material" uid="uid://b6irksunrvdek" path="res://post_process/blur-post-process_mat.tres" id="1_3emcg"]
-[ext_resource type="Material" uid="uid://bni0eo5gi5ho4" path="res://post_process/lcd-overlay_mat.tres" id="2_0v7s0"]
-[ext_resource type="Shader" uid="uid://dw4vbsynovv6n" path="res://shaders/pp_band-dither.gdshader" id="3_rkbcs"]
-[ext_resource type="Texture2D" uid="uid://b0ub3tqjyw46f" path="res://shaders/psxdither.png" id="4_05ih0"]
+[ext_resource type="Material" uid="uid://b6irksunrvdek" path="res://visual/post_process/blur-post-process_mat.tres" id="1_3emcg"]
+[ext_resource type="Material" uid="uid://bni0eo5gi5ho4" path="res://visual/post_process/lcd-overlay_mat.tres" id="2_0v7s0"]
+[ext_resource type="Shader" uid="uid://dw4vbsynovv6n" path="res://visual/shaders/pp_band-dither.gdshader" id="3_rkbcs"]
+[ext_resource type="Texture2D" uid="uid://b0ub3tqjyw46f" path="res://visual/shaders/psxdither.png" id="4_05ih0"]
 [ext_resource type="PackedScene" uid="uid://b5mkiwbkjho27" path="res://scenes/main.tscn" id="5_l0ykp"]
 
 [sub_resource type="ShaderMaterial" id="ShaderMaterial_m5nvn"]
