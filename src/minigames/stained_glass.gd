@@ -196,9 +196,9 @@ func get_total_pieces() -> int:
 	return total_pieces
 
 
-func show_targets(show: bool) -> void:
+func show_targets(enabled: bool) -> void:
 	for child in targets_container.get_children():
-		child.visible = show
+		child.visible = enabled
 
 
 func auto_solve() -> void:
