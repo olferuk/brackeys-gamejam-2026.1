@@ -4,6 +4,8 @@
 [ext_resource type="PackedScene" uid="uid://c1hud00000001" path="res://scenes/hud.tscn" id="2_hud"]
 [ext_resource type="PackedScene" path="res://gameplay/paintings/painting.tscn" id="3_painting"]
 [ext_resource type="PackedScene" path="res://src/ui/pause_menu.tscn" id="5_pause"]
+[ext_resource type="Script" uid="uid://dcet22hdtwrhv" path="res://src/minigames/painting.gd" id="6_old_painting"]
+[ext_resource type="PackedScene" uid="uid://rkorsjnytypp" path="res://scenes/test_screen.tscn" id="7_test_screen"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_floor"]
 albedo_color = Color(0.4, 0.35, 0.3, 1)
@@ -13,6 +15,18 @@ albedo_color = Color(0.9, 0.9, 0.85, 1)
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_wall"]
 albedo_color = Color(0.8, 0.75, 0.7, 1)
+
+[sub_resource type="QuadMesh" id="QuadMesh_old"]
+
+[sub_resource type="ViewportTexture" id="ViewportTexture_old"]
+viewport_path = NodePath("OldPainting/SubViewport")
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_old"]
+resource_local_to_scene = true
+albedo_texture = SubResource("ViewportTexture_old")
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_old"]
+size = Vector3(1, 1, 0.1)
 
 [node name="Main" type="Node3D" groups=["main_scene"]]
 
@@ -81,3 +95,27 @@ light_energy = 0.5
 omni_range = 8.0
 
 [node name="PauseMenu" parent="." instance=ExtResource("5_pause")]
+
+[node name="OldPainting" type="Node3D" parent="."]
+transform = Transform3D(0, 0, -1, 0, 1, 0, 1, 0, 0, 4.95, 2, 0)
+script = ExtResource("6_old_painting")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="OldPainting"]
+mesh = SubResource("QuadMesh_old")
+surface_material_override/0 = SubResource("StandardMaterial3D_old")
+
+[node name="StaticBody3D" type="StaticBody3D" parent="OldPainting/MeshInstance3D"]
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="OldPainting/MeshInstance3D/StaticBody3D"]
+shape = SubResource("BoxShape3D_old")
+
+[node name="CameraAnchor" type="Marker3D" parent="OldPainting"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1.5)
+
+[node name="SubViewport" type="SubViewport" parent="OldPainting"]
+disable_3d = true
+handle_input_locally = false
+size = Vector2i(1152, 648)
+render_target_update_mode = 4
+
+[node name="TestScreen" parent="OldPainting/SubViewport" instance=ExtResource("7_test_screen")]
