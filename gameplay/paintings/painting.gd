@@ -122,7 +122,7 @@ func _update_art() -> void:
 	if not canvas_mesh:
 		return
 	
-	if current_state == State.IN_PROGRESS and subviewport:
+	if (current_state == State.ZOOMING_IN or current_state == State.IN_PROGRESS) and subviewport and current_minigame:
 		# Show viewport texture during minigame
 		var material := StandardMaterial3D.new()
 		var vp_texture := ViewportTexture.new()
@@ -160,7 +160,7 @@ func _update_visuals() -> void:
 
 
 #region INPUT
-func _unhandled_input(event: InputEvent) -> void:
+func _input(event: InputEvent) -> void:
 	if Engine.is_editor_hint():
 		return
 	
