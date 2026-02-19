@@ -1,43 +1,52 @@
 extends Control
+class_name MusicBoxDemo
+## Demo wrapper for MusicBox puzzle with debug UI
 
-@onready var puzzle: MusicBox = $PuzzleContainer/MusicBox
-@onready var keys_spin: SpinBox = $UI/Settings/KeysSpin
-@onready var rounds_spin: SpinBox = $UI/Settings/RoundsSpin
-@onready var note_dur_spin: SpinBox = $UI/Settings/NoteDurSpin
-@onready var pitch_drop_spin: SpinBox = $UI/Settings/PitchDropSpin
-@onready var tempo_slow_spin: SpinBox = $UI/Settings/TempoSlowSpin
+@onready var puzzle: MusicBox = $SubViewportContainer/SubViewport/MusicBox
+@onready var round_label: Label = $DebugUI/RoundLabel
+@onready var sequence_label: Label = $DebugUI/SequenceLabel
+@onready var play_button: Button = $DebugUI/PlayButton
+@onready var autosolve_button: Button = $DebugUI/AutosolveButton
+@onready var reset_button: Button = $DebugUI/ResetButton
+@onready var win_label: Label = $WinLabel
+
 
 func _ready() -> void:
-	keys_spin.value = puzzle.num_keys
-	rounds_spin.value = puzzle.max_rounds
-	note_dur_spin.value = puzzle.base_note_duration
-	pitch_drop_spin.value = puzzle.pitch_reduction_per_round * 100
-	tempo_slow_spin.value = puzzle.duration_increase_per_round * 100
+	play_button.pressed.connect(_on_play_pressed)
+	autosolve_button.pressed.connect(_on_autosolve_pressed)
+	reset_button.pressed.connect(_on_reset_pressed)
 	
-	keys_spin.value_changed.connect(_on_keys_changed)
-	rounds_spin.value_changed.connect(_on_rounds_changed)
-	note_dur_spin.value_changed.connect(_on_note_dur_changed)
-	pitch_drop_spin.value_changed.connect(_on_pitch_changed)
-	tempo_slow_spin.value_changed.connect(_on_tempo_changed)
+	puzzle.round_changed.connect(_on_round_changed)
+	puzzle.sequence_updated.connect(_on_sequence_updated)
 	puzzle.puzzle_completed.connect(_on_puzzle_completed)
 
-func _on_keys_changed(value: float) -> void:
-	puzzle.num_keys = int(value)
 
-func _on_rounds_changed(value: float) -> void:
-	puzzle.max_rounds = int(value)
+func _on_round_changed(round_num: int, total: int) -> void:
+	round_label.text = "Round: %d / %d" % [round_num, total]
 
-func _on_note_dur_changed(value: float) -> void:
-	puzzle.base_note_duration = value
 
-func _on_pitch_changed(value: float) -> void:
-	puzzle.pitch_reduction_per_round = value / 100.0
+func _on_sequence_updated(seq: Array[int]) -> void:
+	var seq_str = ""
+	for i in range(seq.size()):
+		seq_str += str(seq[i])
+		if i < seq.size() - 1:
+			seq_str += " - "
+	sequence_label.text = "Sequence: [%s]" % seq_str
 
-func _on_tempo_changed(value: float) -> void:
-	puzzle.duration_increase_per_round = value / 100.0
-
-func _on_apply_pressed() -> void:
-	puzzle.reset_game()
 
 func _on_puzzle_completed() -> void:
-	print("Music Box completed!")
+	win_label.visible = true
+	round_label.text = "COMPLETED!"
+
+
+func _on_play_pressed() -> void:
+	puzzle.replay_sequence()
+
+
+func _on_autosolve_pressed() -> void:
+	puzzle.auto_solve()
+
+
+func _on_reset_pressed() -> void:
+	puzzle.reset()
+	win_label.visible = false
