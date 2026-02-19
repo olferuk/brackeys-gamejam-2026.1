@@ -4,3 +4,12 @@
 .claude
 .vscode
 /Folder.DotSettings.user
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Import files (optional, Godot regenerates)
+*.import
