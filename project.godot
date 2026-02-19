@@ -18,6 +18,8 @@ config/icon="res://icon.svg"
 [autoload]
 
 GameManager="*res://src/autoload/game_manager.gd"
+ProgressService="*res://gameplay/progression/progress_service.gd"
+MiniGameManager="*res://gameplay/minigames/minigame_manager.gd"
 
 [file_customization]
 
