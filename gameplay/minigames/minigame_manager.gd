@@ -34,8 +34,8 @@ const MINIGAME_SCENES: Dictionary = {
 	Type.MOCK_WIN_LOSE: "res://gameplay/minigames/mock/mock_minigame.tscn",
 	Type.FIFTEEN_PUZZLE: "res://gameplay/minigames/fifteen/fifteen_minigame.tscn",
 	Type.MORSE_CODE: "res://gameplay/minigames/mock/mock_minigame.tscn",          # TODO: real scene
-	Type.MUSIC_BOX: "res://gameplay/minigames/mock/mock_minigame.tscn",           # TODO: real scene
-	Type.STAINED_GLASS: "res://gameplay/minigames/mock/mock_minigame.tscn",       # TODO: real scene
+	Type.MUSIC_BOX: "res://gameplay/minigames/music_box/music_box_minigame.tscn",
+	Type.STAINED_GLASS: "res://gameplay/minigames/stained_glass/stained_glass_minigame.tscn",
 }
 
 ## Currently active minigame instance
