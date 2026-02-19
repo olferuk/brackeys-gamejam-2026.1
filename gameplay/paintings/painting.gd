@@ -114,10 +114,6 @@ func _ready() -> void:
 	_update_art()
 	_update_size()
 	_update_visuals()
-	
-	# Connect interaction
-	if interaction_area:
-		interaction_area.input_event.connect(_on_interaction_input)
 
 
 func _update_art() -> void:
