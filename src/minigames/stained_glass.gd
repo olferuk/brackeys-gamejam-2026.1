@@ -67,9 +67,7 @@ func _create_fragments() -> void:
 	var piece_size = Vector2(cell_width * 0.8, cell_height * 0.8)
 	
 	for i in range(total_pieces):
-		@warning_ignore("integer_division")
-		var row: int = i / cols
-		@warning_ignore("integer_division")
+		var row: int = floori(float(i) / cols)
 		var col: int = i % cols
 		
 		# Target position within frame
