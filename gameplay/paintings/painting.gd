@@ -166,16 +166,22 @@ func _update_visuals() -> void:
 
 
 #region INTERACTION
-func _on_interaction_input(camera: Node, event: InputEvent, position: Vector3, normal: Vector3, shape_idx: int) -> void:
-	if Engine.is_editor_hint():
-		return
-	
-	if event is InputEventMouseButton:
-		if event.button_index == MOUSE_BUTTON_LEFT and event.pressed:
-			interact()
+## For player raycast interaction system
+func can_interact() -> bool:
+	return current_state == State.AVAILABLE
 
 
-## Called when player interacts with the painting
+func show_tooltip() -> void:
+	# TODO: Show "[E] Interact" prompt in HUD
+	pass
+
+
+func hide_tooltip() -> void:
+	# TODO: Hide prompt
+	pass
+
+
+## Called when player presses E
 func interact() -> void:
 	match current_state:
 		State.AVAILABLE:

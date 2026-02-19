@@ -45,6 +45,11 @@ func setup(p_painting_id: String, p_difficulty: int, p_params: Dictionary = {}) 
 ## Override this for custom setup logic
 func _on_setup() -> void:
 	pass
+
+
+func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		cancel()
 #endregion
 
 
