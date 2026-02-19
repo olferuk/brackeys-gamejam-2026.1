@@ -30,10 +30,9 @@ enum Type {
 }
 
 ## Registry: Type -> PackedScene path
-## Update paths after merging minigame branches
 const MINIGAME_SCENES: Dictionary = {
 	Type.MOCK_WIN_LOSE: "res://gameplay/minigames/mock/mock_minigame.tscn",
-	Type.FIFTEEN_PUZZLE: "res://gameplay/minigames/mock/mock_minigame.tscn",      # TODO: real scene
+	Type.FIFTEEN_PUZZLE: "res://gameplay/minigames/fifteen/fifteen_minigame.tscn",
 	Type.MORSE_CODE: "res://gameplay/minigames/mock/mock_minigame.tscn",          # TODO: real scene
 	Type.MUSIC_BOX: "res://gameplay/minigames/mock/mock_minigame.tscn",           # TODO: real scene
 	Type.STAINED_GLASS: "res://gameplay/minigames/mock/mock_minigame.tscn",       # TODO: real scene

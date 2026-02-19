@@ -60,8 +60,9 @@ material = SubResource("StandardMaterial3D_wall")
 
 [node name="Painting" parent="." instance=ExtResource("3_painting")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, -4.95)
-painting_id = "test_painting"
-minigame_type = 1
+painting_id = "fifteen_puzzle"
+minigame_type = 2
+difficulty = 2
 
 [node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=2043965571]
 transform = Transform3D(0.866, -0.354, 0.354, 0, 0.707, 0.707, -0.5, -0.612, 0.612, 2, 3.5, 2)
