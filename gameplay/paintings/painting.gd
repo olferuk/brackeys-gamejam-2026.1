@@ -107,8 +107,8 @@ func _ready() -> void:
 		_update_size()
 		return
 	
-	# Check persistence
-	if ProgressService and ProgressService.is_painting_completed(painting_id):
+	# Check persistence via GameManager
+	if GameManager and GameManager.is_painting_healed(painting_id):
 		current_state = State.COMPLETED
 	
 	_update_art()
@@ -223,9 +223,9 @@ func _on_minigame_result(result: IMiniGame.Result) -> void:
 		IMiniGame.Result.WIN:
 			if one_shot_on_win:
 				current_state = State.COMPLETED
-				# Persist
-				if ProgressService:
-					ProgressService.set_painting_completed(painting_id, true)
+				# Persist via GameManager
+				if GameManager:
+					GameManager.heal_painting(painting_id)
 				painting_completed.emit(painting_id)
 			else:
 				current_state = State.AVAILABLE
@@ -244,14 +244,14 @@ func _on_minigame_result(result: IMiniGame.Result) -> void:
 ## Force complete (for testing/cheats)
 func force_complete() -> void:
 	current_state = State.COMPLETED
-	if ProgressService:
-		ProgressService.set_painting_completed(painting_id, true)
+	if GameManager:
+		GameManager.heal_painting(painting_id)
 	painting_completed.emit(painting_id)
 
 
 ## Reset to available (for testing)
 func reset() -> void:
 	current_state = State.AVAILABLE
-	if ProgressService:
-		ProgressService.set_painting_completed(painting_id, false)
+	if GameManager:
+		GameManager.healed_paintings.erase(painting_id)
 #endregion

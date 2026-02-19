@@ -121,6 +121,10 @@ func start_minigame(
 	get_tree().paused = true
 	_current_minigame.process_mode = Node.PROCESS_MODE_ALWAYS
 	
+	# Sync state with GameManager
+	if GameManager:
+		GameManager.change_state(GameManager.State.MINIGAME)
+	
 	# Show mouse for minigame UI
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
 	
@@ -146,6 +150,10 @@ func _on_minigame_finished(result: IMiniGame.Result, type: Type, painting_id: St
 	
 	# Unpause game
 	get_tree().paused = false
+	
+	# Sync state with GameManager
+	if GameManager:
+		GameManager.change_state(GameManager.State.PLAYING)
 	
 	# Restore mouse capture (FPS game)
 	Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
