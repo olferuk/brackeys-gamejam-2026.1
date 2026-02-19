@@ -15,18 +15,12 @@ var fragments: Array[FragmentPiece] = []
 var placed_count: int = 0
 var total_pieces: int = 0
 var is_complete: bool = false
-var showing_targets: bool = false
+var dragged_fragment: FragmentPiece = null  # Only one at a time!
 
 ## Node references
 @onready var frame_container: Node2D = $FrameContainer
 @onready var fragments_container: Node2D = $FragmentsContainer
 @onready var targets_container: Node2D = $TargetsContainer
-@onready var debug_ui: Control = $DebugUI
-@onready var pieces_label: Label = $DebugUI/PiecesLabel
-@onready var show_targets_btn: Button = $DebugUI/ShowTargetsBtn
-@onready var auto_solve_btn: Button = $DebugUI/AutoSolveBtn
-@onready var reset_btn: Button = $DebugUI/ResetBtn
-@onready var win_label: Label = $WinLabel
 
 ## Placeholder colors for testing
 const PLACEHOLDER_COLORS: Array[Color] = [
@@ -40,21 +34,14 @@ const PLACEHOLDER_COLORS: Array[Color] = [
 ]
 
 func _ready() -> void:
-	_setup_debug_ui()
-	_setup_puzzle()
+	setup_puzzle()
 
-func _setup_debug_ui() -> void:
-	show_targets_btn.pressed.connect(_on_show_targets_pressed)
-	auto_solve_btn.pressed.connect(_on_auto_solve_pressed)
-	reset_btn.pressed.connect(_on_reset_pressed)
-	_update_pieces_label()
 
-func _setup_puzzle() -> void:
+func setup_puzzle() -> void:
 	_clear_all()
-	_draw_frame()
 	_create_fragments()
 	_scatter_fragments()
-	_update_pieces_label()
+
 
 func _clear_all() -> void:
 	for child in fragments_container.get_children():
@@ -64,12 +51,8 @@ func _clear_all() -> void:
 	fragments.clear()
 	placed_count = 0
 	is_complete = false
-	if win_label:
-		win_label.visible = false
+	dragged_fragment = null
 
-func _draw_frame() -> void:
-	# Frame is drawn via _draw() in FrameContainer
-	frame_container.queue_redraw()
 
 func _create_fragments() -> void:
 	var use_textures = fragment_textures.size() > 0
@@ -106,15 +89,15 @@ func _create_fragments() -> void:
 		# Create target indicator
 		_create_target_indicator(target_pos, piece_size, i)
 
+
 func _create_textured_fragment(index: int, texture: Texture2D, target: Vector2, size: Vector2) -> FragmentPiece:
 	var fragment = FragmentPiece.new()
 	fragment.name = "Fragment_%d" % index
 	fragment.target_position = target
 	fragment.snap_distance = snap_distance
 	fragment.set_texture(texture, size)
-	fragment.placed.connect(_on_fragment_placed)
-	fragment.picked_up.connect(_on_fragment_picked_up)
 	return fragment
+
 
 func _create_placeholder_fragment(index: int, color: Color, target: Vector2, size: Vector2) -> FragmentPiece:
 	var fragment = FragmentPiece.new()
@@ -122,9 +105,8 @@ func _create_placeholder_fragment(index: int, color: Color, target: Vector2, siz
 	fragment.target_position = target
 	fragment.snap_distance = snap_distance
 	fragment.set_placeholder(color, size)
-	fragment.placed.connect(_on_fragment_placed)
-	fragment.picked_up.connect(_on_fragment_picked_up)
 	return fragment
+
 
 func _create_target_indicator(pos: Vector2, size: Vector2, index: int) -> void:
 	var indicator = ColorRect.new()
@@ -132,8 +114,9 @@ func _create_target_indicator(pos: Vector2, size: Vector2, index: int) -> void:
 	indicator.size = size
 	indicator.position = pos - size / 2
 	indicator.color = Color(1, 1, 1, 0.15)
-	indicator.visible = showing_targets
+	indicator.visible = false  # Hidden by default
 	targets_container.add_child(indicator)
+
 
 func _scatter_fragments() -> void:
 	for fragment in fragments:
@@ -144,73 +127,104 @@ func _scatter_fragments() -> void:
 			)
 			fragment.position = random_pos
 
-func _on_fragment_placed(fragment: FragmentPiece) -> void:
-	placed_count += 1
-	_update_pieces_label()
-	_check_win()
 
-func _on_fragment_picked_up(fragment: FragmentPiece) -> void:
+## Input handling - single drag at a time
+func _input(event: InputEvent) -> void:
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		if event.pressed:
+			_try_pick_fragment()
+		else:
+			_release_fragment()
+	
+	elif event is InputEventMouseMotion and dragged_fragment:
+		dragged_fragment.position = get_local_mouse_position() + dragged_fragment.drag_offset
+
+
+func _try_pick_fragment() -> void:
+	if dragged_fragment:
+		return
+	
+	var mouse_pos = get_local_mouse_position()
+	
+	# Find topmost fragment under cursor (reverse order = top first)
+	for i in range(fragments.size() - 1, -1, -1):
+		var fragment = fragments[i]
+		if fragment.is_point_inside(mouse_pos):
+			_start_drag(fragment, mouse_pos)
+			return
+
+
+func _start_drag(fragment: FragmentPiece, mouse_pos: Vector2) -> void:
+	dragged_fragment = fragment
+	fragment.drag_offset = fragment.position - mouse_pos
+	fragment.z_index = 100
+	
 	if fragment.is_placed:
 		fragment.is_placed = false
 		placed_count = maxi(0, placed_count - 1)
-		_update_pieces_label()
+
+
+func _release_fragment() -> void:
+	if not dragged_fragment:
+		return
+	
+	var fragment = dragged_fragment
+	dragged_fragment = null
+	fragment.z_index = 0
+	
+	# Try to snap
+	var distance = fragment.position.distance_to(fragment.target_position)
+	if distance <= snap_distance and not fragment.is_placed:
+		fragment.snap_to_target()
+		placed_count += 1
+		_check_win()
+
 
 func _check_win() -> void:
 	if placed_count >= total_pieces and not is_complete:
 		is_complete = true
-		if win_label:
-			win_label.visible = true
 		puzzle_completed.emit()
 
-func _update_pieces_label() -> void:
-	if pieces_label:
-		pieces_label.text = "Pieces: %d / %d" % [placed_count, total_pieces]
 
-## Debug UI handlers
+## Public API
 
-func _on_show_targets_pressed() -> void:
-	showing_targets = not showing_targets
+func get_placed_count() -> int:
+	return placed_count
+
+
+func get_total_pieces() -> int:
+	return total_pieces
+
+
+func show_targets(visible: bool) -> void:
 	for child in targets_container.get_children():
-		child.visible = showing_targets
-	show_targets_btn.text = "Hide Targets" if showing_targets else "Show Targets"
+		child.visible = visible
 
-func _on_auto_solve_pressed() -> void:
+
+func auto_solve() -> void:
 	for fragment in fragments:
 		if not fragment.is_placed:
 			fragment.snap_to_target()
 			placed_count += 1
-	_update_pieces_label()
 	_check_win()
 
-func _on_reset_pressed() -> void:
+
+func reset_puzzle() -> void:
 	for fragment in fragments:
 		fragment.is_placed = false
 	placed_count = 0
 	is_complete = false
-	if win_label:
-		win_label.visible = false
+	dragged_fragment = null
 	_scatter_fragments()
-	_update_pieces_label()
-
-## Public API
-
-func reset_puzzle() -> void:
-	_on_reset_pressed()
-
-func load_textures(textures: Array[Texture2D]) -> void:
-	fragment_textures = textures
-	_setup_puzzle()
 
 
-## FragmentPiece - Inner class for draggable pieces
+## =========================================================================
+## FragmentPiece - Draggable piece (input handled by parent)
+## =========================================================================
 class FragmentPiece extends Node2D:
-	signal placed(fragment: FragmentPiece)
-	signal picked_up(fragment: FragmentPiece)
-	
 	var target_position: Vector2 = Vector2.ZERO
 	var snap_distance: float = 30.0
 	var is_placed: bool = false
-	var is_dragging: bool = false
 	var drag_offset: Vector2 = Vector2.ZERO
 	var piece_size: Vector2 = Vector2(60, 80)
 	
@@ -219,12 +233,16 @@ class FragmentPiece extends Node2D:
 	var glow_rect: ColorRect
 	var use_texture: bool = false
 	
-	func _ready() -> void:
-		z_index = 0
-	
 	func set_placeholder(color: Color, size: Vector2) -> void:
 		piece_size = size
 		use_texture = false
+		
+		# Border
+		var border = ColorRect.new()
+		border.size = size + Vector2(4, 4)
+		border.position = -size / 2 - Vector2(2, 2)
+		border.color = Color(0.2, 0.2, 0.2, 1)
+		add_child(border)
 		
 		# Main visual
 		visual = ColorRect.new()
@@ -241,18 +259,6 @@ class FragmentPiece extends Node2D:
 		glow_rect.visible = false
 		glow_rect.z_index = -1
 		add_child(glow_rect)
-		
-		# Border effect
-		var border = ColorRect.new()
-		border.size = size
-		border.position = -size / 2
-		border.color = Color(0.2, 0.2, 0.2, 1)
-		border.z_index = -1
-		border.size += Vector2(4, 4)
-		border.position -= Vector2(2, 2)
-		add_child(border)
-		border.move_to_front()
-		visual.move_to_front()
 	
 	func set_texture(texture: Texture2D, size: Vector2) -> void:
 		piece_size = size
@@ -272,36 +278,10 @@ class FragmentPiece extends Node2D:
 		glow_rect.z_index = -1
 		add_child(glow_rect)
 	
-	func _input(event: InputEvent) -> void:
-		if event is InputEventMouseButton:
-			if event.button_index == MOUSE_BUTTON_LEFT:
-				if event.pressed:
-					if _is_mouse_over():
-						is_dragging = true
-						drag_offset = position - get_global_mouse_position()
-						z_index = 100  # Bring to front while dragging
-						if is_placed:
-							picked_up.emit(self)
-				else:
-					if is_dragging:
-						is_dragging = false
-						z_index = 0
-						_try_snap()
-		
-		if event is InputEventMouseMotion and is_dragging:
-			position = get_global_mouse_position() + drag_offset
-	
-	func _is_mouse_over() -> bool:
-		var mouse_pos = get_local_mouse_position()
-		var half_size = piece_size / 2
-		return mouse_pos.x >= -half_size.x and mouse_pos.x <= half_size.x \
-			and mouse_pos.y >= -half_size.y and mouse_pos.y <= half_size.y
-	
-	func _try_snap() -> void:
-		var distance = position.distance_to(target_position)
-		if distance <= snap_distance and not is_placed:
-			snap_to_target()
-			placed.emit(self)
+	func is_point_inside(point: Vector2) -> bool:
+		var local = point - position
+		var half = piece_size / 2
+		return local.x >= -half.x and local.x <= half.x and local.y >= -half.y and local.y <= half.y
 	
 	func snap_to_target() -> void:
 		position = target_position
@@ -309,30 +289,14 @@ class FragmentPiece extends Node2D:
 		_play_snap_effect()
 	
 	func _play_snap_effect() -> void:
-		# Brief glow effect
-		glow_rect.visible = true
+		if glow_rect:
+			glow_rect.visible = true
 		
-		# Scale pulse
 		var original_scale = scale
 		var tween = create_tween()
 		tween.tween_property(self, "scale", original_scale * 1.1, 0.1)
 		tween.tween_property(self, "scale", original_scale, 0.1)
-		tween.tween_callback(func(): glow_rect.visible = false)
-
-
-## FrameVisual - Inner class for drawing the frame
-class FrameVisual extends Node2D:
-	var frame_rect: Rect2 = Rect2(50, 50, 300, 400)
-	var frame_color: Color = Color(0.4, 0.3, 0.2, 1)
-	var border_width: float = 8.0
-	
-	func _draw() -> void:
-		# Draw frame border
-		var outer = frame_rect.grow(border_width)
-		draw_rect(outer, frame_color, true)
-		
-		# Draw inner (transparent area for pieces)
-		draw_rect(frame_rect, Color(0.15, 0.15, 0.2, 1), true)
-		
-		# Draw decorative inner border
-		draw_rect(frame_rect.grow(-2), Color(0.5, 0.4, 0.3, 1), false, 2.0)
+		tween.tween_callback(func(): 
+			if glow_rect:
+				glow_rect.visible = false
+		)
