@@ -73,6 +73,10 @@ var original_camera_transform: Transform3D
 var original_fov: float
 var player_camera: Camera3D
 var current_minigame: IMiniGame = null
+
+# Materials
+var art_material: StandardMaterial3D
+var viewport_material: StandardMaterial3D
 #endregion
 
 
@@ -97,8 +101,8 @@ func _ready() -> void:
 	if GameManager and GameManager.is_painting_healed(painting_id):
 		current_state = State.COMPLETED
 	
-	# Setup SubViewport texture on canvas
-	_setup_viewport_texture()
+	# Setup materials
+	_setup_materials()
 	
 	_update_art()
 	_update_size()
@@ -110,35 +114,40 @@ func _ready() -> void:
 		player_camera = player.get_node("Camera3D")
 
 
-func _setup_viewport_texture() -> void:
-	if not subviewport or not canvas_mesh:
-		return
+func _setup_materials() -> void:
+	# Art material (for idle state)
+	art_material = StandardMaterial3D.new()
+	if art_texture:
+		art_material.albedo_texture = art_texture
+	else:
+		art_material.albedo_color = Color(0.3, 0.3, 0.35)
+	art_material.cull_mode = BaseMaterial3D.CULL_BACK
 	
-	# Initially show art texture, not viewport
-	# Viewport texture will be shown when minigame starts
+	# Viewport material (for minigame state)
+	if subviewport:
+		viewport_material = StandardMaterial3D.new()
+		viewport_material.cull_mode = BaseMaterial3D.CULL_BACK
+		# We'll set the texture when minigame starts
 
 
 func _update_art() -> void:
 	if not canvas_mesh:
 		return
 	
-	if (current_state == State.ZOOMING_IN or current_state == State.IN_PROGRESS) and subviewport and current_minigame:
-		# Show viewport texture during minigame
+	if Engine.is_editor_hint():
+		# In editor, just show placeholder
 		var material := StandardMaterial3D.new()
-		var vp_texture := ViewportTexture.new()
-		vp_texture.viewport_path = subviewport.get_path()
-		material.albedo_texture = vp_texture
-		material.cull_mode = BaseMaterial3D.CULL_BACK
+		if art_texture:
+			material.albedo_texture = art_texture
+		else:
+			material.albedo_color = Color(0.3, 0.3, 0.35)
 		canvas_mesh.material_override = material
-	elif art_texture:
-		var material := StandardMaterial3D.new()
-		material.albedo_texture = art_texture
-		material.cull_mode = BaseMaterial3D.CULL_BACK
-		canvas_mesh.material_override = material
-	else:
-		var material := StandardMaterial3D.new()
-		material.albedo_color = Color(0.3, 0.3, 0.35)
-		canvas_mesh.material_override = material
+		return
+	
+	if (current_state == State.ZOOMING_IN or current_state == State.IN_PROGRESS) and viewport_material:
+		canvas_mesh.material_override = viewport_material
+	elif art_material:
+		canvas_mesh.material_override = art_material
 
 
 func _update_size() -> void:
@@ -261,6 +270,11 @@ func _start_minigame() -> void:
 	current_minigame.setup(painting_id, difficulty, {})
 	current_minigame.finished.connect(_on_minigame_finished)
 	subviewport.add_child(current_minigame)
+	
+	# Set viewport texture NOW that we have content
+	var vp_texture := ViewportTexture.new()
+	vp_texture.viewport_path = subviewport.get_path()
+	viewport_material.albedo_texture = vp_texture
 	
 	# Update state
 	current_state = State.ZOOMING_IN
