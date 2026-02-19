@@ -456,10 +456,10 @@ func exit_minigame() -> void:
 #region UTILITIES
 ## Get formatted playtime string (HH:MM:SS)
 func get_playtime_formatted() -> String:
-	var total_seconds := int(playtime_seconds)
-	var hours := total_seconds / 3600
-	var minutes := (total_seconds % 3600) / 60
-	var seconds := total_seconds % 60
+	var total_seconds: int = int(playtime_seconds)
+	var hours: int = floori(float(total_seconds) / 3600.0)
+	var minutes: int = floori(float(total_seconds % 3600) / 60.0)
+	var seconds: int = total_seconds % 60
 	return "%02d:%02d:%02d" % [hours, minutes, seconds]
 
 
